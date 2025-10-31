@@ -2,268 +2,312 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useNavigate } from 'react-router-dom';
 
+interface Experience {
+  company: string;
+  position: string;
+  period: string;
+  description: string;
+}
+
+interface Project {
+  title: string;
+  description: string;
+  link: string;
+}
+
 interface ProfileData {
   fullName: string;
+  title: string;
   bio: string;
-  goal: string;
-  industry: string;
-  experience: string;
   email: string;
   phone: string;
   location: string;
+  photo: string;
+  skills: string[];
+  experience: Experience[];
+  projects: Project[];
 }
 
 export default function ProfileBuilder() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
   const [profile, setProfile] = useState<ProfileData>({
     fullName: '',
+    title: '',
     bio: '',
-    goal: '',
-    industry: '',
-    experience: '',
     email: '',
     phone: '',
-    location: ''
+    location: '',
+    photo: '',
+    skills: [],
+    experience: [],
+    projects: []
   });
 
-  const totalSteps = 4;
-
-  const handleNext = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-    } else {
-      const username = profile.fullName.toLowerCase().replace(/\s+/g, '-') || 'user';
-      localStorage.setItem(`pulse_profile_${username}`, JSON.stringify(profile));
-      navigate(`/${username}`);
+  const [newSkill, setNewSkill] = useState('');
+  
+  const addSkill = () => {
+    if (newSkill.trim() && profile.skills.length < 20) {
+      setProfile({ ...profile, skills: [...profile.skills, newSkill.trim()] });
+      setNewSkill('');
     }
   };
 
-  const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    } else {
-      navigate('/');
-    }
+  const removeSkill = (index: number) => {
+    setProfile({ ...profile, skills: profile.skills.filter((_, i) => i !== index) });
   };
 
-  const canProceed = () => {
-    switch (step) {
-      case 1: return profile.fullName.length > 1;
-      case 2: return profile.bio.length > 10;
-      case 3: return profile.goal.length > 0;
-      case 4: return profile.industry.length > 0 && profile.experience.length > 0;
-      default: return false;
+  const addExperience = () => {
+    setProfile({
+      ...profile,
+      experience: [...profile.experience, { company: '', position: '', period: '', description: '' }]
+    });
+  };
+
+  const updateExperience = (index: number, field: keyof Experience, value: string) => {
+    const updated = [...profile.experience];
+    updated[index] = { ...updated[index], [field]: value };
+    setProfile({ ...profile, experience: updated });
+  };
+
+  const removeExperience = (index: number) => {
+    setProfile({ ...profile, experience: profile.experience.filter((_, i) => i !== index) });
+  };
+
+  const addProject = () => {
+    setProfile({
+      ...profile,
+      projects: [...profile.projects, { title: '', description: '', link: '' }]
+    });
+  };
+
+  const updateProject = (index: number, field: keyof Project, value: string) => {
+    const updated = [...profile.projects];
+    updated[index] = { ...updated[index], [field]: value };
+    setProfile({ ...profile, projects: updated });
+  };
+
+  const removeProject = (index: number) => {
+    setProfile({ ...profile, projects: profile.projects.filter((_, i) => i !== index) });
+  };
+
+  const handleSave = () => {
+    if (!profile.fullName || !profile.bio) {
+      alert('Заполните имя и описание');
+      return;
     }
+    const username = profile.fullName.toLowerCase().replace(/\s+/g, '-');
+    localStorage.setItem(`pulse_profile_${username}`, JSON.stringify(profile));
+    navigate(`/${username}`);
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-background sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
-          <button 
-            onClick={handleBack}
-            className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-          >
-            <Icon name="ArrowLeft" size={18} />
-            <span>Назад</span>
-          </button>
-          <div className="text-sm text-muted-foreground">
-            Шаг {step} из {totalSteps}
-          </div>
-          <div className="w-16" />
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <Button variant="ghost" onClick={() => navigate('/')}>
+            <Icon name="ArrowLeft" size={18} className="mr-2" />
+            Главная
+          </Button>
+          <Button onClick={handleSave} disabled={!profile.fullName || !profile.bio}>
+            Сохранить и просмотреть
+          </Button>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-12 pb-32">
-        {step === 1 && (
-          <div className="space-y-8">
-            <div>
-              <h1 className="text-4xl font-bold mb-3">Как вас зовут?</h1>
-              <p className="text-muted-foreground text-lg">Это будет отображаться в вашем профиле</p>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Полное имя</label>
-                <Input
-                  value={profile.fullName}
-                  onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-                  placeholder="Алексей Иванов"
-                  className="h-12 text-base"
-                  autoFocus
-                />
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h2 className="text-xl font-bold mb-4">Основная информация</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Полное имя *</label>
+                  <Input
+                    value={profile.fullName}
+                    onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
+                    placeholder="Алексей Иванов"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Должность</label>
+                  <Input
+                    value={profile.title}
+                    onChange={(e) => setProfile({ ...profile, title: e.target.value })}
+                    placeholder="Senior Product Designer"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">О себе *</label>
+                  <Textarea
+                    value={profile.bio}
+                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                    placeholder="Расскажите о своем опыте и навыках..."
+                    rows={4}
+                  />
+                </div>
               </div>
+            </Card>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
-                <Input
-                  type="email"
-                  value={profile.email}
-                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                  placeholder="alex@example.com"
-                  className="h-12 text-base"
-                />
+            <Card className="p-6">
+              <h2 className="text-xl font-bold mb-4">Контакты</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Email</label>
+                  <Input
+                    type="email"
+                    value={profile.email}
+                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    placeholder="alex@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Телефон</label>
+                  <Input
+                    value={profile.phone}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    placeholder="+7 900 123-45-67"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Город</label>
+                  <Input
+                    value={profile.location}
+                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
+                    placeholder="Москва"
+                  />
+                </div>
               </div>
+            </Card>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Телефон</label>
-                <Input
-                  value={profile.phone}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                  placeholder="+7 900 123-45-67"
-                  className="h-12 text-base"
-                />
+            <Card className="p-6">
+              <h2 className="text-xl font-bold mb-4">Навыки</h2>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    value={newSkill}
+                    onChange={(e) => setNewSkill(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                    placeholder="React, Figma, Python..."
+                  />
+                  <Button onClick={addSkill} size="sm">
+                    <Icon name="Plus" size={18} />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {profile.skills.map((skill, i) => (
+                    <Badge key={i} variant="secondary" className="gap-1">
+                      {skill}
+                      <button onClick={() => removeSkill(i)}>
+                        <Icon name="X" size={14} />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Город</label>
-                <Input
-                  value={profile.location}
-                  onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                  placeholder="Москва"
-                  className="h-12 text-base"
-                />
-              </div>
-            </div>
+            </Card>
           </div>
-        )}
 
-        {step === 2 && (
-          <div className="space-y-8">
-            <div>
-              <h1 className="text-4xl font-bold mb-3">Расскажите о себе</h1>
-              <p className="text-muted-foreground text-lg">Опишите свой опыт и навыки</p>
-            </div>
-            
-            <div>
-              <Textarea
-                value={profile.bio}
-                onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                placeholder="Frontend-разработчик с опытом 5+ лет. Специализируюсь на React, TypeScript и создании масштабируемых веб-приложений..."
-                className="min-h-[240px] text-base"
-                autoFocus
-              />
-              <div className="text-sm text-muted-foreground mt-2">
-                {profile.bio.length} символов
+          <div className="space-y-6">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Опыт работы</h2>
+                <Button onClick={addExperience} size="sm" variant="outline">
+                  <Icon name="Plus" size={18} className="mr-1" />
+                  Добавить
+                </Button>
               </div>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-8">
-            <div>
-              <h1 className="text-4xl font-bold mb-3">Какая ваша цель?</h1>
-              <p className="text-muted-foreground text-lg">Для чего создаёте профиль</p>
-            </div>
-            
-            <div className="space-y-3">
-              {[
-                { icon: 'Briefcase', label: 'Найти работу', value: 'job' },
-                { icon: 'Users', label: 'Нетворкинг', value: 'network' },
-                { icon: 'Rocket', label: 'Показать портфолио', value: 'portfolio' },
-                { icon: 'Target', label: 'Найти фриланс проекты', value: 'freelance' }
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setProfile({ ...profile, goal: option.value })}
-                  className={`w-full p-4 rounded-lg border-2 transition-all text-left flex items-center gap-4 ${
-                    profile.goal === option.value 
-                      ? 'border-foreground bg-muted' 
-                      : 'border-border hover:border-muted-foreground'
-                  }`}
-                >
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                    <Icon name={option.icon} size={20} />
+              <div className="space-y-6">
+                {profile.experience.map((exp, i) => (
+                  <div key={i} className="p-4 border border-border rounded-lg space-y-3">
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm font-medium">Опыт {i + 1}</span>
+                      <button onClick={() => removeExperience(i)}>
+                        <Icon name="Trash2" size={16} className="text-muted-foreground" />
+                      </button>
+                    </div>
+                    <Input
+                      value={exp.position}
+                      onChange={(e) => updateExperience(i, 'position', e.target.value)}
+                      placeholder="Должность"
+                    />
+                    <Input
+                      value={exp.company}
+                      onChange={(e) => updateExperience(i, 'company', e.target.value)}
+                      placeholder="Компания"
+                    />
+                    <Input
+                      value={exp.period}
+                      onChange={(e) => updateExperience(i, 'period', e.target.value)}
+                      placeholder="2020 - 2023"
+                    />
+                    <Textarea
+                      value={exp.description}
+                      onChange={(e) => updateExperience(i, 'description', e.target.value)}
+                      placeholder="Описание обязанностей..."
+                      rows={3}
+                    />
                   </div>
-                  <span className="font-medium">{option.label}</span>
-                  {profile.goal === option.value && (
-                    <Icon name="Check" size={18} className="ml-auto" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="space-y-8">
-            <div>
-              <h1 className="text-4xl font-bold mb-3">Последние детали</h1>
-              <p className="text-muted-foreground text-lg">Расскажите о своей сфере и опыте</p>
-            </div>
-            
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-3">Ваша сфера деятельности</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { icon: 'Code', label: 'IT', value: 'it' },
-                    { icon: 'Palette', label: 'Дизайн', value: 'design' },
-                    { icon: 'TrendingUp', label: 'Маркетинг', value: 'marketing' },
-                    { icon: 'Briefcase', label: 'Менеджмент', value: 'management' },
-                    { icon: 'DollarSign', label: 'Финансы', value: 'finance' },
-                    { icon: 'Camera', label: 'Контент', value: 'content' }
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setProfile({ ...profile, industry: option.value })}
-                      className={`p-4 rounded-lg border-2 transition-all text-left flex items-center gap-3 ${
-                        profile.industry === option.value 
-                          ? 'border-foreground bg-muted' 
-                          : 'border-border hover:border-muted-foreground'
-                      }`}
-                    >
-                      <Icon name={option.icon} size={18} />
-                      <span className="font-medium text-sm">{option.label}</span>
-                    </button>
-                  ))}
-                </div>
+                ))}
+                {profile.experience.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Icon name="Briefcase" size={32} className="mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Добавьте опыт работы</p>
+                  </div>
+                )}
               </div>
+            </Card>
 
-              <div>
-                <label className="block text-sm font-medium mb-3">Опыт работы</label>
-                <div className="space-y-3">
-                  {[
-                    { label: 'Без опыта', value: 'none' },
-                    { label: '1-2 года', value: 'junior' },
-                    { label: '3-5 лет', value: 'middle' },
-                    { label: '5+ лет', value: 'senior' }
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setProfile({ ...profile, experience: option.value })}
-                      className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-                        profile.experience === option.value 
-                          ? 'border-foreground bg-muted' 
-                          : 'border-border hover:border-muted-foreground'
-                      }`}
-                    >
-                      <span className="font-medium">{option.label}</span>
-                    </button>
-                  ))}
-                </div>
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Проекты</h2>
+                <Button onClick={addProject} size="sm" variant="outline">
+                  <Icon name="Plus" size={18} className="mr-1" />
+                  Добавить
+                </Button>
               </div>
-            </div>
+              <div className="space-y-6">
+                {profile.projects.map((proj, i) => (
+                  <div key={i} className="p-4 border border-border rounded-lg space-y-3">
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm font-medium">Проект {i + 1}</span>
+                      <button onClick={() => removeProject(i)}>
+                        <Icon name="Trash2" size={16} className="text-muted-foreground" />
+                      </button>
+                    </div>
+                    <Input
+                      value={proj.title}
+                      onChange={(e) => updateProject(i, 'title', e.target.value)}
+                      placeholder="Название проекта"
+                    />
+                    <Textarea
+                      value={proj.description}
+                      onChange={(e) => updateProject(i, 'description', e.target.value)}
+                      placeholder="Описание проекта..."
+                      rows={3}
+                    />
+                    <Input
+                      value={proj.link}
+                      onChange={(e) => updateProject(i, 'link', e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                ))}
+                {profile.projects.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Icon name="FolderOpen" size={32} className="mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Добавьте портфолио</p>
+                  </div>
+                )}
+              </div>
+            </Card>
           </div>
-        )}
-      </main>
-
-      <footer className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-6">
-        <div className="max-w-3xl mx-auto">
-          <Button
-            onClick={handleNext}
-            disabled={!canProceed()}
-            className="w-full h-12 text-base"
-          >
-            {step === totalSteps ? 'Создать профиль' : 'Продолжить'}
-          </Button>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
